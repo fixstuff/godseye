@@ -20,10 +20,15 @@ import { trackBackfillProxies } from './aircraft/tracks.js';
 import { openAiRealtimeProxy } from './openai.js';
 import { googlePlacesContextProxy } from './places.js';
 import { keySetupEndpoint } from '../standalone/key-setup.js';
+import { apiOriginGatePlugin } from '../standalone/api-origin-gate.js';
 
-/** Construct the local provider plugins in their established order. */
+/**
+ * Construct the local provider plugins in their established order. The origin
+ * gate stays first: its `/api` middleware must run before every provider's.
+ */
 function localProviderPlugins() {
   return [
+    apiOriginGatePlugin(),
     openSkyProxy(),
     celestrakProxy(),
     tomtomProxy(),

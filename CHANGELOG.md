@@ -448,6 +448,12 @@ of current runtime behavior, see [`docs/CURRENT-STATE.md`](docs/CURRENT-STATE.md
   limiting or upstream requests; preserve the keyless capability response.
 - Bound CCTV media response headers to 15 seconds and cancel error bodies.
   Cap buffered snapshot downloads at 16 MiB while streaming.
+- Refuse `/api` requests a browser marks as cross-site or same-site, or whose
+  Origin names a different host, before any provider runs. A page open in
+  another tab can no longer spend configured Google or OpenAI quota or write
+  the voice debug log through simple cross-site requests.
+- Rotate `.gev-logs/realtime-conversations.jsonl` at 16 MiB and keep one
+  previous generation, bounding the voice debug log on disk.
 
 - Cancel the active location lookup when its controls are disposed.
 

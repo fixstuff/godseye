@@ -68,13 +68,14 @@ The data proxies under `server/providers/` are written so the browser cannot tur
 - **Response-size caps and timeouts** on proxied responses.
 - **Sanitized errors** — internal error details are not echoed back to clients.
 - **Coalesced OAuth refresh** and cached successful responses only (OpenSky).
-- **Redacted debug logging.** The voice debug log (`.gev-logs/`, gitignored) strips API keys, bearer tokens, client secrets, and image data URLs before writing.
+- **Bounded, client-redacted debug logging.** The voice client strips API keys, bearer tokens, client secrets, and image data URLs before posting to the debug log (`.gev-logs/`, gitignored). The server writes records as received and rotates the file at 16 MiB, keeping one previous generation.
 
 ## Network exposure — the operator threat model
 
 The dev server is a **key broker**: every server-side key above is spendable by anyone who can send HTTP requests to it. That shapes the defaults:
 
 - **Local-only by default.** `./scripts/dev-fresh.sh` (and the Vite config itself) bind to `localhost`, so only your machine can reach the server — and only local names are accepted (`allowedHosts` stays restricted, which also blunts DNS-rebinding tricks).
+- **Same-origin API.** Every `/api` route refuses a request the browser marks as cross-site or same-site (`Sec-Fetch-Site`), and any request whose `Origin` names a different host than the one it was sent to, before a provider runs. A web page open in another tab therefore cannot spend your quota or write the debug log through this server. Requests carrying neither header (curl, local tooling) are admitted — a web page cannot send those. Browsers too old to send `Sec-Fetch-Site` are covered only where they send `Origin`. A reverse proxy in front of the server must preserve the `Host` header.
 - **LAN exposure is an explicit opt-in**: `HOST=0.0.0.0 ./scripts/dev-fresh.sh`. The launcher prints a prominent warning plus your LAN URL. Understand what opting in means: **every device on that network can drive the proxies and spend your OpenAI / Google / OpenSky / AISStream / TomTom / FIRMS quota** for as long as the server runs. Do this only on networks you trust.
 - **App-level throttles (opt-in):** `GEV_RATELIMIT_OPENAI_PER_MIN` and `GEV_RATELIMIT_GOOGLE_PER_MIN` cap the cost-bearing endpoints per client IP per minute (over-limit requests receive a sanitized `429`). They are **per-IP, process-local, in-memory guards** — they reset on restart and are **not billing caps**.
 - **Provider-side budgets are the real backstop.** For hard spend protection, configure limits where the money is: OpenAI platform usage limits, Google Cloud budget alerts + per-API quotas, and equivalent controls for any other keyed provider.
